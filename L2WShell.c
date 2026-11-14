@@ -118,7 +118,7 @@ int main(void)
         FreeLibrary(dll);
         return 1;
     }
-    FreeLibrary(dll);
+    //FreeLibrary(dll);
     puts("L2WShell - Linux commands on Windows. Type help.");
     for (;;) {
         fputs("l2w> ", stdout);
