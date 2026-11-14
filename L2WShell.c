@@ -106,7 +106,7 @@ int main(void)
     char *args[MAX_ARGS];
     int argc;
 
-    dll = LoadLibraryA("L2WShellDLL.dll");
+    dll = LoadLibraryA("C:\\Users\\calvin\\source\\repos\\DLL\\DynamicLinking-DLL-\\L2WShellDLL.dll");
     if (!dll) {
         fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
         return 1;
