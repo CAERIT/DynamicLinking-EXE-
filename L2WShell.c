@@ -106,12 +106,12 @@ int main(void)
     char *args[MAX_ARGS];
     int argc;
 
-    dll = LoadLibraryA("C:\\Users\\calvin\\source\\repos\\DLL\\DynamicLinking-DLL-\\L2WShellDLL.dll");
+    dll = LoadLibraryA("C:/Users/calvin/source/repos/DLL/x64/Debug/GenDll.dll");
     if (!dll) {
         fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
         return 1;
     }
-    parse = (ParseCommandFn)GetProcAddress(dll, "ParseCmd");
+    parse = (ParseCommandFn)GetProcAddress(dll, "ParseCommand");
     execute = (ExecuteCommandFn)GetProcAddress(dll, "ExecuteCommandWrapper");
     if (!parse || !execute) {
         fprintf(stderr, "Missing required DLL export.\n");
