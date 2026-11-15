@@ -2,6 +2,10 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
+#include <wintrust.h>
+#include <softpub.h>
+
+#pragma comment(lib, "Wintrust.lib")
 
 #define MAX_LINE 1024
 #define MAX_ARGS 16
@@ -97,6 +101,47 @@ static int dispatch(char *args[], int argc, ExecuteCommandFn execute)
     return execute(cmd->windows_name, (const char *const *)(args + 1), argc - 1);
 }
 
+
+int VerifyDllSignature(LPCWSTR dllPath) // from ChatGPT
+{
+    WINTRUST_FILE_INFO fileInfo;
+    WINTRUST_DATA trustData;
+
+    GUID policyGUID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+
+    ZeroMemory(&fileInfo, sizeof(fileInfo));
+    ZeroMemory(&trustData, sizeof(trustData));
+
+    fileInfo.cbStruct = sizeof(WINTRUST_FILE_INFO);
+    fileInfo.pcwszFilePath = dllPath;
+
+    trustData.cbStruct = sizeof(WINTRUST_DATA);
+    trustData.dwUIChoice = WTD_UI_NONE;
+    trustData.fdwRevocationChecks = WTD_REVOKE_NONE;
+    trustData.dwUnionChoice = WTD_CHOICE_FILE;
+    trustData.pFile = &fileInfo;
+    trustData.dwStateAction = WTD_STATEACTION_VERIFY;
+    trustData.dwProvFlags = WTD_CACHE_ONLY_URL_RETRIEVAL;
+
+    LONG status = WinVerifyTrust(
+        NULL,
+        &policyGUID,
+        &trustData
+    );
+
+    trustData.dwStateAction = WTD_STATEACTION_CLOSE;
+
+    WinVerifyTrust(
+        NULL,
+        &policyGUID,
+        &trustData
+    );
+
+    return status == ERROR_SUCCESS;
+}
+
+
+
 int main(void)
 {
     HMODULE dll;
@@ -106,11 +151,32 @@ int main(void)
     char *args[MAX_ARGS];
     int argc;
 
-    dll = LoadLibraryA("C:/Users/calvin/source/repos/DLL/x64/Debug/GenDll.dll");
-    if (!dll) {
-        fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
+
+
+    LPCWSTR dllPath = L"C:/Users/calvin/source/repos/DLL/Debug/GenDll.dll";
+
+    if (!VerifyDllSignature(dllPath))
+    {
+        fprintf(stderr, "DLL signature verification failed. Terminating.\n");
         return 1;
     }
+
+    printf("DLL signature verified successfully.\n");
+
+    dll = LoadLibraryW(dllPath);
+
+    if (dll == NULL)
+    {
+        fprintf(stderr, "LoadLibrary failed: %lu\n", GetLastError());
+        return 1;
+    }
+
+
+    //dll = LoadLibraryA("C:/Users/calvin/source/repos/DLL/Debug/MalDll.dll");
+    /*if (!dll) {
+        fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
+        return 1;
+    }*/
     parse = (ParseCommandFn)GetProcAddress(dll, "ParseCommand");
     execute = (ExecuteCommandFn)GetProcAddress(dll, "ExecuteCommandWrapper");
     if (!parse || !execute) {
@@ -118,7 +184,7 @@ int main(void)
         FreeLibrary(dll);
         return 1;
     }
-    //FreeLibrary(dll);
+    //    FreeLibrary(dll); causing issues, why is i here
     puts("L2WShell - Linux commands on Windows. Type help.");
     for (;;) {
         fputs("l2w> ", stdout);
@@ -136,5 +202,6 @@ int main(void)
         if (dispatch(args, argc, execute) == -1)
             break;
     }
+    FreeLibrary(dll); //moveing     FreeLibrary(dll) here
     return 0;
 }
